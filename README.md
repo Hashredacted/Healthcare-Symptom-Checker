@@ -60,13 +60,6 @@ python backend/main.py
 
 4. Open `http://localhost:8000`
 
-## API routes
-
-- `POST /api/check-symptoms` accepts `{ "symptoms": "..." }` and returns `level`, `response`, `disclaimer`, and `timestamp`
-- `GET /api/history` returns the 20 most recent saved requests
-- `GET /api/health` returns app status plus database availability
-
-
 ## Disclaimer
 
 This project is for educational purposes only. Always talk to a qualified healthcare professional about medical symptoms. If someone may be having a medical emergency, call local emergency services right away.
