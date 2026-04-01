@@ -52,9 +52,9 @@ MONGODB_DB_NAME=healthai
 
 ```bash
 uvicorn backend.main:app --reload --port 8000
-
+```
 or
-
+```bash
 python backend/main.py 
 ```
 
