@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any
 
-
 def build_query_history_document(
     user_input: str,
     llm_response: str,
