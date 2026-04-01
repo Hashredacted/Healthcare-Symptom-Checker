@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["Symptom Checker"])
 
+
 DISCLAIMER = (
     "This information is for educational purposes only and is NOT a substitute "
     "for professional medical advice, diagnosis, or treatment. Always seek the "
@@ -130,7 +131,7 @@ async def check_symptoms(
 @router.get(
     "/history",
     response_model=list[HistoryRecord],
-    summary="Get recent query history",
+    summary="Get recent query history ",
     description="Returns the 20 most recent symptom-check interactions.",
 )
 async def get_history(
