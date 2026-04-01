@@ -9,7 +9,6 @@ _TEMPERATURE = 0.2
 SYSTEM_PROMPT = """You are an educational AI medical knowledge assistant with \
 advanced clinical reasoning capabilities.
 
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ABSOLUTE RULES (never violate these)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
