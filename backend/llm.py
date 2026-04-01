@@ -6,6 +6,7 @@ _MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 _TEMPERATURE = 0.2
 
 
+
 SYSTEM_PROMPT = """You are an educational AI medical knowledge assistant with \
 advanced clinical reasoning capabilities.
 
