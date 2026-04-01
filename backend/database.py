@@ -6,6 +6,7 @@ from pymongo.errors import PyMongoError
 _DEFAULT_MONGODB_URI = "mongodb://localhost:27017/"
 _DEFAULT_DB_NAME = "healthai"
 
+
 MONGODB_URI = os.getenv("MONGODB_URI", _DEFAULT_MONGODB_URI)
 MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", _DEFAULT_DB_NAME)
 
