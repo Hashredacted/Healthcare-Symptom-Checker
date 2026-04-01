@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Healthcare Symptom Checker</title>
+  <meta name="description" content="An educational AI-powered symptom checker. Describe your symptoms and receive probable conditions and recommended next steps. For educational purposes only." />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50:  '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            },
+            surface: {
+              900: '#0f0f1a',
+              800: '#161625',
+              700: '#1e1e35',
+              600: '#252542',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'fade-in': 'fadeIn 0.5s ease-out forwards',
+            'slide-up': 'slideUp 0.4s ease-out forwards',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { opacity: '0', transform: 'translateY(16px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+          }
+        }
+      }
+    }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #161625; }
+    ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 3px; }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      14%       { transform: scale(1.15); }
+      28%       { transform: scale(1); }
+      42%       { transform: scale(1.1); }
+      70%       { transform: scale(1); }
+    }
+    .heartbeat { animation: heartbeat 1.8s ease-in-out infinite; }
+
+    .gradient-border {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+      padding: 1px;
+      border-radius: 12px;
+    }
+    .gradient-border-inner {
+      background: #161625;
+      border-radius: 11px;
+    }
+
+    .glow-brand { box-shadow: 0 0 30px rgba(99, 102, 241, 0.25); }
+    .glow-emergency { box-shadow: 0 0 30px rgba(239, 68, 68, 0.35); }
+
+    .md-content strong { color: #e0e7ff; font-weight: 600; }
+    .md-content em { color: #a5b4fc; font-style: italic; }
+    .md-content ul { list-style: none; padding: 0; }
+    .md-content li { padding-left: 1.25rem; position: relative; margin-bottom: 0.5rem; }
+    .md-content li::before { content: '›'; position: absolute; left: 0; color: #6366f1; font-weight: bold; }
+
+    .section-header {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 10px;
+      border-radius: 999px;
+      margin-bottom: 6px;
+      background: rgba(99,102,241,0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(99,102,241,0.3);
+    }
+
+    .condition-card {
+      background: rgba(30,30,53,0.7);
+      border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      transition: border-color 0.2s;
+    }
+    .condition-card:hover { border-color: rgba(99,102,241,0.5); }
+    .condition-name { font-weight: 700; color: #e0e7ff; font-size: 0.95rem; }
+
+    .likelihood {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 1px 8px;
+      border-radius: 999px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .likelihood-high   { background: rgba(34,197,94,0.15);  color: #4ade80; border: 1px solid rgba(34,197,94,0.35); }
+    .likelihood-medium { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.35); }
+    .likelihood-low    { background: rgba(148,163,184,0.1); color: #94a3b8; border: 1px solid rgba(148,163,184,0.3); }
+
+    .followup-block {
+      background: rgba(6,182,212,0.07);
+      border: 1px solid rgba(6,182,212,0.25);
+      border-left: 3px solid #06b6d4;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 12px;
+    }
+    .followup-block .fq-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #06b6d4;
+      margin-bottom: 6px;
+    }
+    .followup-block li { color: #a5b4fc; font-size: 0.85rem; margin-bottom: 4px; }
+    .followup-block li::before { color: #06b6d4; }
+
+    .disclaimer-block {
+      background: rgba(251,191,36,0.06);
+      border: 1px solid rgba(251,191,36,0.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      color: #fbbf24;
+      margin-bottom: 14px;
+    }
+
+    .md-section { margin-bottom: 18px; }
+    .md-section-title { font-weight: 700; color: #c7d2fe; margin-bottom: 8px; font-size: 0.9rem; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 0.8s linear infinite; }
+
+    #symptoms-input:focus { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4); outline: none; }
+  </style>
+</head>
+
+<body class="bg-surface-900 text-slate-200 font-sans min-h-screen flex flex-col">
+
+  <nav class="bg-surface-800 border-b border-surface-700 sticky top-0 z-50 backdrop-blur-sm">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl heartbeat" aria-hidden="true">🫀</span>
+        <span class="text-xl font-bold bg-gradient-to-r from-brand-400 to-cyan-400 bg-clip-text text-transparent">
+          Healthcare Symptom Checker
+        </span>
+        <span class="text-xs text-slate-500 hidden sm:inline">Symptom Checker</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="api-status" class="hidden text-xs px-2 py-1 rounded-full bg-surface-700 text-slate-400"></span>
+        <button
+          id="history-toggle-btn"
+          onclick="toggleHistory()"
+          class="text-sm text-brand-400 hover:text-brand-300 font-medium transition-colors flex items-center gap-1"
+          aria-label="Toggle query history panel"
+        >
+          📋 History
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="bg-amber-950 border-b border-amber-700">
+    <div class="max-w-5xl mx-auto px-4 py-2.5 flex items-start gap-3">
+      <span class="text-amber-400 text-lg shrink-0 mt-0.5" aria-hidden="true">⚠️</span>
+      <p class="text-sm text-amber-200 leading-snug">
+        <strong class="text-amber-300">Educational Use Only.</strong>
+        This tool is for educational purposes only and is <strong>not a substitute for professional medical advice</strong>,
+        diagnosis, or treatment. Always consult a qualified healthcare provider for medical concerns.
+        <span class="font-semibold text-amber-300">If you are experiencing a medical emergency, call 911 immediately.</span>
+      </p>
+    </div>
+  </div>
+
+  <main class="flex-1 max-w-5xl mx-auto w-full px-4 py-10 flex flex-col gap-8" id="main-content">
+
+    <header class="text-center space-y-3">
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight">
+        <span class="bg-gradient-to-r from-brand-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+          AI Symptom Checker
+        </span>
+      </h1>
+      <p class="text-slate-400 text-lg max-w-xl mx-auto">
+        Describe your symptoms in plain language and receive an educational overview
+        of probable conditions and recommended next steps.
+      </p>
+    </header>
+
+    <section aria-label="Symptom input form" class="gradient-border glow-brand">
+      <div class="gradient-border-inner p-6 space-y-4">
+
+        <label for="symptoms-input" class="block text-sm font-semibold text-slate-300 uppercase tracking-wider">
+          Describe Your Symptoms
+        </label>
+
+        <textarea
+          id="symptoms-input"
+          name="symptoms"
+          rows="5"
+          maxlength="2000"
+          placeholder="e.g. I have had a persistent headache for the past two days, along with a mild fever and fatigue…"
+          aria-label="Enter your symptoms here"
+          aria-describedby="char-counter symptom-hint"
+          class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-3 text-slate-200
+                 placeholder-slate-600 resize-none text-sm leading-relaxed
+                 transition-all duration-200 focus:border-brand-500"
+          oninput="updateCharCount()"
+        ></textarea>
+
+        <div class="flex items-center justify-between">
+          <p id="symptom-hint" class="text-xs text-slate-500">
+            Be as descriptive as possible — include duration, severity, and location.
+          </p>
+          <span id="char-counter" class="text-xs text-slate-600" aria-live="polite">0 / 2000</span>
+        </div>
+
+        <button
+          id="submit-btn"
+          onclick="checkSymptoms()"
+          aria-label="Submit symptoms for analysis"
+          class="w-full py-3.5 rounded-xl font-semibold text-sm tracking-wide transition-all duration-200
+                 bg-gradient-to-r from-brand-600 to-purple-600
+                 hover:from-brand-500 hover:to-purple-500
+                 active:scale-[0.98] shadow-lg shadow-brand-900/50
+                 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <span id="btn-icon">🔍</span>
+          <span id="btn-text">Analyse Symptoms</span>
+        </button>
+
+      </div>
+    </section>
+
+    <section
+      id="results-panel"
+      class="hidden animate-slide-up"
+      aria-live="polite"
+      aria-label="Analysis results"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold text-slate-200">Analysis Result</h2>
+        <span
+          id="risk-badge"
+          class="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest"
+        ></span>
+      </div>
+
+      <div id="result-card" class="rounded-xl border p-6 space-y-4 animate-fade-in">
+        <div id="result-content" class="md-content text-sm leading-relaxed text-slate-300 space-y-3"></div>
+
+        <div class="mt-4 pt-4 border-t border-surface-700">
+          <p class="text-xs text-slate-500 italic">
+            ⚠️ This information is for educational purposes only and is NOT a substitute for
+            professional medical advice, diagnosis, or treatment.
+          </p>
+        </div>
+      </div>
+
+      <button
+        onclick="resetForm()"
+        class="mt-4 w-full py-2.5 rounded-xl border border-surface-600 text-sm font-medium
+               text-slate-400 hover:text-slate-200 hover:border-brand-500 transition-all duration-200"
+        aria-label="Start a new symptom search"
+      >
+        ↩ New Search
+      </button>
+    </section>
+
+    <div
+      id="error-panel"
+      class="hidden bg-red-950 border border-red-800 rounded-xl px-5 py-4 animate-fade-in"
+      role="alert"
+    >
+      <p class="text-red-300 text-sm font-medium">⚠️ <span id="error-message"></span></p>
+    </div>
+
+    <section
+      id="history-panel"
+      class="hidden animate-slide-up space-y-3"
+      aria-label="Query history"
+    >
+      <h2 class="text-base font-bold text-slate-300 flex items-center gap-2">
+        📋 Recent Queries
+        <span class="text-xs font-normal text-slate-500">(last 20)</span>
+      </h2>
+      <div id="history-list" class="space-y-2 max-h-96 overflow-y-auto pr-1"></div>
+    </section>
+
+  </main>
+
+  <footer class="bg-surface-800 border-t border-surface-700 py-5">
+    <div class="max-w-5xl mx-auto px-4 text-center space-y-1">
+      <p class="text-xs text-slate-500">
+        Healthcare Symptom Checker &mdash; For educational purposes only.
+        Not a medical device. Not FDA cleared or approved.
+      </p>
+      <p class="text-xs text-slate-600">
+        If you are in a medical emergency, call <strong class="text-slate-400">911</strong> (US) &middot;
+        <strong class="text-slate-400">999</strong> (UK) &middot;
+        <strong class="text-slate-400">112</strong> (EU)
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    let historyVisible = false;
+
+    function updateCharCount() {
+      const input = document.getElementById('symptoms-input');
+      const counter = document.getElementById('char-counter');
+      const len = input.value.length;
+      counter.textContent = `${len} / 2000`;
+      counter.classList.toggle('text-amber-400', len > 1800);
+      counter.classList.toggle('text-red-400', len >= 2000);
+    }
+
+    function setLoading(loading) {
+      const btn     = document.getElementById('submit-btn');
+      const btnIcon = document.getElementById('btn-icon');
+      const btnText = document.getElementById('btn-text');
+      const input   = document.getElementById('symptoms-input');
+
+      btn.disabled   = loading;
+      input.disabled = loading;
+
+      if (loading) {
+        btnIcon.innerHTML = `
+          <svg class="spinner w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>`;
+        btnText.textContent = 'Analysing…';
+      } else {
+        btnIcon.textContent = '🔍';
+        btnText.textContent = 'Analyse Symptoms';
+      }
+    }
+
+    function renderMarkdown(text) {
+      if (!text) return '';
+
+      const lines = text.split('\n');
+      let html = '';
+      let inConditions = false;
+      let inFollowup = false;
+      let currentSection = null;
+      let conditionBuffer = null;
+
+      function flushCondition() {
+        if (conditionBuffer) {
+          html += `<div class="condition-card">${conditionBuffer}</div>`;
+          conditionBuffer = null;
+        }
+      }
+
+      function likelihoodBadge(raw) {
+        const val = raw.trim().toLowerCase();
+        if (val.includes('high'))   return `<span class="likelihood likelihood-high">▲ High</span>`;
+        if (val.includes('medium')) return `<span class="likelihood likelihood-medium">◆ Medium</span>`;
+        if (val.includes('low'))    return `<span class="likelihood likelihood-low">▼ Low</span>`;
+        return `<span class="likelihood likelihood-low">${raw.trim()}</span>`;
+      }
+
+      for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i];
+        const trimmed = raw.trim();
+
+        const sectionMatch = trimmed.match(/^\*\s+\*\*(Educational Disclaimer|Symptom Summary|Probable Conditions|Recommended Next Steps|Follow-up Questions):\*\*(.*)$/);
+
+        if (sectionMatch) {
+          flushCondition();
+          const secName = sectionMatch[1];
+          const rest    = sectionMatch[2].trim();
+          inConditions  = secName === 'Probable Conditions';
+          inFollowup    = secName === 'Follow-up Questions';
+          currentSection = secName;
+
+          if (secName === 'Educational Disclaimer') {
+            html += `<div class="disclaimer-block">⚠️ <strong>Educational Disclaimer:</strong> ${rest ? escapeHtml(rest) : ''}`;
+            if (!rest) html += '</div>';
+            continue;
+          }
+          if (secName === 'Follow-up Questions') {
+            html += `<div class="followup-block"><div class="fq-title">💬 Follow-up Questions</div><ul>`;
+            continue;
+          }
+          html += `<div class="md-section"><div class="md-section-title"><span class="section-header">${secName}</span></div>`;
+          if (rest) html += `<p class="text-slate-300 text-sm">${formatInline(rest)}</p>`;
+          continue;
+        }
+
+        if (inConditions) {
+          const condMatch = trimmed.match(/^-\s+\*\*(.+?)\*\*\s*\*\(Likelihood:\s*([^)]+)\)\*(.*)$/);
+          if (condMatch) {
+            flushCondition();
+            const badge = likelihoodBadge(condMatch[2]);
+            const extra = condMatch[3].trim();
+            conditionBuffer = `<div class="condition-name">${escapeHtml(condMatch[1])}${badge}</div>`;
+            if (extra) conditionBuffer += `<p class="text-slate-400 text-sm mt-1">${formatInline(extra)}</p>`;
+            continue;
+          }
+          if (conditionBuffer && trimmed && !trimmed.startsWith('*')) {
+            conditionBuffer += `<p class="text-slate-400 text-sm mt-1">${formatInline(trimmed)}</p>`;
+            continue;
+          }
+          if (!trimmed) { flushCondition(); continue; }
+        }
+
+        if (inFollowup) {
+          if (!trimmed) continue;
+          const qMatch = trimmed.match(/^[-–•]\s+(.+)$/) || trimmed.match(/^\d+\.\s+(.+)$/);
+          if (qMatch) {
+            html += `<li>${formatInline(qMatch[1])}</li>`;
+            continue;
+          }
+          if (trimmed.startsWith('*')) { html += `</ul></div>`; inFollowup = false; }
+        }
+
+        if (currentSection === 'Educational Disclaimer' && !sectionMatch) {
+          if (trimmed) html += `${formatInline(trimmed)}</div>`;
+          currentSection = null;
+          continue;
+        }
+
+        const bulletMatch = trimmed.match(/^[-*]\s+(.+)$/);
+        if (bulletMatch) {
+          html += `<ul><li>${formatInline(bulletMatch[1])}</li></ul>`;
+          continue;
+        }
+
+        const numMatch = trimmed.match(/^\d+\.\s+(.+)$/);
+        if (numMatch) {
+          html += `<p class="pl-4 border-l-2 border-brand-600 text-sm text-slate-300 mb-1">${formatInline(numMatch[1])}</p>`;
+          continue;
+        }
+
+        if (trimmed === '---') {
+          html += `<hr class="border-surface-700 my-3" />`;
+          continue;
+        }
+
+        if (!trimmed) { html += ''; continue; }
+
+        html += `<p class="text-slate-300 text-sm mb-1">${formatInline(trimmed)}</p>`;
+      }
+
+      flushCondition();
+      if (inFollowup) html += '</ul></div>';
+
+      return html;
+    }
+
+    function formatInline(text) {
+      return text
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+?)\*/g, '<em>$1</em>');
+    }
+
+    function applyRiskStyling(level) {
+      const badge = document.getElementById('risk-badge');
+      const card  = document.getElementById('result-card');
+
+      badge.className = 'text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest';
+      card.className  = 'rounded-xl border p-6 space-y-4 animate-fade-in';
+
+      if (level === 'EMERGENCY') {
+        badge.classList.add('bg-red-900', 'text-red-300', 'border', 'border-red-700');
+        badge.textContent = '🚨 Emergency';
+        card.classList.add('bg-red-950', 'border-red-800', 'glow-emergency');
+      } else if (level === 'URGENT') {
+        badge.classList.add('bg-amber-900', 'text-amber-300', 'border', 'border-amber-700');
+        badge.textContent = '⚠️ Urgent';
+        card.classList.add('bg-amber-950', 'border-amber-800');
+      } else {
+        badge.classList.add('bg-emerald-900', 'text-emerald-300', 'border', 'border-emerald-700');
+        badge.textContent = '✅ Normal';
+        card.classList.add('bg-surface-800', 'border-surface-600');
+      }
+    }
+
+    function showError(msg) {
+      const panel = document.getElementById('error-panel');
+      const msgEl = document.getElementById('error-message');
+      msgEl.textContent = msg;
+      panel.classList.remove('hidden');
+    }
+
+    function clearError() {
+      document.getElementById('error-panel').classList.add('hidden');
+    }
+
+    async function checkSymptoms() {
+      const input = document.getElementById('symptoms-input');
+      const symptoms = input.value.trim();
+
+      if (!symptoms || symptoms.length < 3) {
+        showError('Please describe your symptoms in more detail before submitting.');
+        return;
+      }
+
+      clearError();
+      setLoading(true);
+      document.getElementById('results-panel').classList.add('hidden');
+
+      try {
+        const response = await fetch('/api/check-symptoms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symptoms }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || `Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        displayResult(data);
+
+      } catch (err) {
+        console.error('Symptom check failed:', err);
+        showError(
+          err.message ||
+          'Unable to connect to the analysis service. Please ensure the server is running and your API key is set.'
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function displayResult(data) {
+      const panel   = document.getElementById('results-panel');
+      const content = document.getElementById('result-content');
+
+      applyRiskStyling(data.level);
+      content.innerHTML = renderMarkdown(data.response);
+
+      panel.classList.remove('hidden');
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function resetForm() {
+      document.getElementById('symptoms-input').value = '';
+      document.getElementById('symptoms-input').disabled = false;
+      document.getElementById('results-panel').classList.add('hidden');
+      clearError();
+      updateCharCount();
+      document.getElementById('symptoms-input').focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function toggleHistory() {
+      historyVisible = !historyVisible;
+      const panel = document.getElementById('history-panel');
+
+      if (historyVisible) {
+        panel.classList.remove('hidden');
+        await loadHistory();
+      } else {
+        panel.classList.add('hidden');
+      }
+    }
+
+    async function loadHistory() {
+      const list = document.getElementById('history-list');
+      list.innerHTML = '<p class="text-slate-500 text-sm">Loading…</p>';
+
+      try {
+        const response = await fetch('/api/history');
+        if (!response.ok) throw new Error('Failed to load history.');
+        const records = await response.json();
+
+        if (!records || records.length === 0) {
+          list.innerHTML = '<p class="text-slate-500 text-sm italic">No queries yet. Submit your first symptom check above.</p>';
+          return;
+        }
+
+        window._historyRecords = records;
+
+        list.innerHTML = records.map((r, idx) => {
+          const levelColors = {
+            EMERGENCY: 'text-red-400',
+            URGENT:    'text-amber-400',
+            NORMAL:    'text-emerald-400',
+          };
+          const color = levelColors[r.risk_level] || 'text-slate-400';
+          const date  = new Date(r.timestamp).toLocaleString();
+
+          return `
+            <div
+              class="group bg-surface-800 border border-surface-700 rounded-lg px-4 py-3
+                     hover:border-brand-500 hover:bg-surface-700 transition-all duration-150
+                     cursor-pointer select-none"
+              onclick="loadHistoryItem(${idx})"
+              role="button"
+              aria-label="Load previous query from ${escapeHtml(date)}"
+            >
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs ${color} font-semibold uppercase">${r.risk_level}</span>
+                <span class="text-xs text-slate-500 group-hover:text-brand-400 transition-colors">
+                  ↩ view &nbsp;&middot;&nbsp; ${escapeHtml(date)}
+                </span>
+              </div>
+              <p class="text-sm text-slate-400 truncate group-hover:text-slate-200 transition-colors">
+                ${escapeHtml(r.user_input)}
+              </p>
+            </div>`;
+        }).join('');
+
+      } catch (err) {
+        list.innerHTML = `<p class="text-red-400 text-sm">⚠️ ${err.message}</p>`;
+      }
+    }
+
+    function loadHistoryItem(idx) {
+      const record = window._historyRecords && window._historyRecords[idx];
+      if (!record) return;
+
+      const input = document.getElementById('symptoms-input');
+      input.value = record.user_input;
+      input.disabled = false;
+      updateCharCount();
+
+      clearError();
+
+      displayResult({
+        level: record.risk_level,
+        response: record.llm_response,
+      });
+
+      document.getElementById('main-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.appendChild(document.createTextNode(str));
+      return d.innerHTML;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('symptoms-input').addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          checkSymptoms();
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>
